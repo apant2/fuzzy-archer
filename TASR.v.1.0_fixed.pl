@@ -36,6 +36,7 @@ use Bio::SeqIO;
 my $ref;
 my $siRNAs_file;
 my $usearchv;
+my $indices      = "";
 my $blastv       = 'NCBI-BLAST+';
 my $out_folder   = 'TASR_output';
 my $temp	 = 'delete';
@@ -54,6 +55,7 @@ my $help         = 0;
 GetOptions(
     'ref=s'          => \$ref,
     'sfile=s'        => \$siRNAs_file,
+    'indices=s'      => \$indices,
     'outfold=s'      => \$out_folder,
     'blastv=s'       => \$blastv,
     'usearchv=s'     => \$usearchv,
@@ -88,7 +90,10 @@ usage: perl TASR_v.1.0.pl -ref genome.fasta -sfile siRNAs.fasta -usearchv path/u
 
     -usearchv     (mandatory)
 			 	  please specify the path to executable file name (ex : -usearchv /usr/bin/usearch7.0.1090_i86linux32)
-	
+    
+    -indices      (optional)
+                  path to the directory containing bowtie2 genome indices. If not passed, indices will be created.
+    
 	-outfold      (optional)
 			 	  output directory (default : -outfold TASR_output)
 
@@ -208,11 +213,15 @@ system("mkdir tmp$time");
 
 ## Mapping siRNAs against the reference genome ###
 print "\n** Bowtie2 genome index ** \n";
-system("bowtie2-build $ref.rename reference >/dev/null 2>/dev/null");
-
+if($indices eq "")
+    system("bowtie2-build $ref.rename reference >/dev/null 2>/dev/null");
+    system("cp reference*.bt2 tmp$time");
+    system("mkdir indices$time");
+    system("mv reference*.bt2 tmp$time");
+else
+    print "\n** Bowtie2 genome index already passed ** \n";
+    system("cp reference*.bt2 tmp$time");
 print "\n        ..done.. \n";
-
-system("mv reference*.bt2 tmp$time");
 
 print "\n   ** siRNAs mapping **\n";
 
