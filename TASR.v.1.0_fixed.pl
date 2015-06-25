@@ -214,13 +214,17 @@ system("mkdir tmp$time");
 ## Mapping siRNAs against the reference genome ###
 print "\n** Bowtie2 genome index ** \n";
 if($indices eq "")
+{
     system("bowtie2-build $ref.rename reference >/dev/null 2>/dev/null");
     system("cp reference*.bt2 tmp$time");
     system("mkdir indices$time");
     system("mv reference*.bt2 tmp$time");
+}
 else
+{
     print "\n** Bowtie2 genome index already passed ** \n";
     system("cp reference*.bt2 tmp$time");
+}
 print "\n        ..done.. \n";
 
 print "\n   ** siRNAs mapping **\n";
