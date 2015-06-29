@@ -51,6 +51,7 @@ my $idensilix    = 0.8;
 my $overlapsilix = 0.8;
 my $copy_num     = 2;
 my $help         = 0;
+my $exit         = 0;
 
 GetOptions(
     'ref=s'          => \$ref,
@@ -71,6 +72,7 @@ GetOptions(
     'cnumber=i'      => \$copy_num,
     'temp=s'	     => \$temp,
     'help!'          => \$help,
+    'exit=i'         => \$exit,
 ) or die "Incorrect usage!\n";
 
 if ($help) {
@@ -233,7 +235,7 @@ print "\n   ** siRNAs mapping **\n";
 system(
     "bowtie2 -k 400 -D 10 -R 5 -N 1 -L 15 -i S,1,0.50 -p $CPU -x tmp$time/reference -f $siRNAs_file -S tmp$time/24.sirna.sam  2>TASR_log/bowtie2.log"
 );
-
+if($exit == 1){exit;}
 print "\n        ..done..  \n";
 
 ## Sam to bam to bed and sorting ##
