@@ -18,9 +18,10 @@
 #                                                           |                                               
 #-----------------------------------------------------------+
 ## modules needed to run this program. Make sure they are loaded before you start: 1) openmpi/1.6.3      3) trf/4.04           5) perl/5.16.1        7) blast+/2.2.28+     9) tasr/1.0          11) exonerate/2.2.0
-#  2) silix/1.2.9        4) libstree/0.4.2     6) samtools/0.1.19    8) bowtie2/2.2.5     10) usearch/7.0.1090
+#  2) silix/1.2.9        4) libstree/0.4.2     6)       8) bowtie2/2.2.5     10) usearch/7.0.1090
 #
 #
+
 use strict;
 use warnings;
 use Getopt::Long;
@@ -134,8 +135,11 @@ usage: perl TASR_v.1.0.pl -ref genome.fasta -sfile siRNAs.fasta -usearchv path/u
 
 	-temp	      (optional)
 	 		          temporary files : keep or delete (default : -temp delete)
-      
-	-h --help
+                      
+    -exit	      (optional)
+                      IF passed the value 1, terminates the program after mapping siRNA against reference genome (default : -exit 0)
+	
+    -h --help
 				  print this menu
 ";
 }
@@ -210,14 +214,13 @@ my %header;
 
 ## Create temporary directory ##
 
-my $time = time;
+my ($time) = $siRNAs_file =~ /Mxg_(\d[A-Z][a-z]_[ATGC]{6})_L00M_R1_001.fastq.q33.l18.fastq.Q33.q30.p94.fastq.filtered.24nt.fasta/;
 system("mkdir tmp$time");
 
 ## Mapping siRNAs against the reference genome ###
 print "\n** Bowtie2 genome index ** \n";
 if($indices eq "")
 {
-    system("mkdir indices$time");
     system("bowtie2-build $ref.rename reference >/dev/null 2>/dev/null");
     system("mv reference*.bt2 tmp$time");
     system("mkdir indices$time");
@@ -230,13 +233,16 @@ else
 }
 print "\n        ..done.. \n";
 
+if($exit == 1){exit 1;}
+
 print "\n   ** siRNAs mapping **\n";
 
 system(
     "bowtie2 -k 400 -D 10 -R 5 -N 1 -L 15 -i S,1,0.50 -p $CPU -x tmp$time/reference -f $siRNAs_file -S tmp$time/24.sirna.sam  2>TASR_log/bowtie2.log"
 );
-if($exit == 1){exit;}
+
 print "\n        ..done..  \n";
+
 
 ## Sam to bam to bed and sorting ##
 
@@ -509,7 +515,7 @@ print "\n-->TASR has finished runing<--\n";
 sub SAMTOBED {
     my ($samfile) = @_;
     open( SAMBED, ">$samfile.bed" );
-    open( SAM,    "<$samfile" );
+    open( SAM,    "<$samfile" ) or die "Can't open '$samfile': $!";
     while (<SAM>) {
         if ( $_ =~ 'AS:i' ) {
             chomp($_);
