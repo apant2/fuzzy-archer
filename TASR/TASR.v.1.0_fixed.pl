@@ -21,7 +21,6 @@
 #  2) silix/1.2.9        4) libstree/0.4.2     6)       8) bowtie2/2.2.5     10) usearch/7.0.1090
 #
 #
-
 use strict;
 use warnings;
 use Getopt::Long;
@@ -214,7 +213,7 @@ my %header;
 
 ## Create temporary directory ##
 
-my ($time) = $siRNAs_file =~ /Mxg_(\d[A-Z][a-z]_[ATGC]{6})_L00M_R1_001.fastq.q33.l18.fastq.Q33.q30.p94.fastq.filtered.24nt.fasta/;
+my ($time) = $siRNAs_file =~ /(\d[A-Z][a-z]_[ATGC]{6})/g;
 system("mkdir tmp$time");
 
 ## Mapping siRNAs against the reference genome ###
@@ -271,6 +270,8 @@ while ( my $lLEN = <LEN>) {
         print MERGE "$lLEN\n";
     }
 }
+
+#issues with code block 257t to 272; nothing being written to tmp$time/24.sirna.merged.$window.$siRNAs.filtered.bed
 close(LEN);
 close(MERGE);
 
@@ -322,6 +323,7 @@ my $seqout = Bio::SeqIO->new(
     -file     => ">tmp$time/24.sirna.merged.$window.$siRNAs.mask.final.fasta",
     '-format' => 'Fasta'
 );
+
 my $seqin = Bio::SeqIO->new(
     -file     => "tmp$time/24.sirna.merged.$window.$siRNAs.mask.final",
     '-format' => 'Fasta'
@@ -373,7 +375,7 @@ system("mkdir tmp$time/clustering");
 #    "mpirun -np 4 silix-split tmp$time/24.sirna.merged.$window.$siRNAs.mask.final.fasta tmp$time/clusters -o tmp$time/clustering/ -n $copy_num >/dev/null 2>/dev/null"
 #); # # mpirun -np was added as silix was compiled for open mpi 
 system(
-    "silix-split tmp$time/24.sirna.merged.$window.$siRNAs.mask.final.fasta tmp$time/clusters -o tmp$time/clustering/ -n $copy_num >/dev/null 2>/dev/null"
+    "silix-split tmp$time/24.sirna.merged.$window.$siRNAs.mask.final.fasta tmp$time/clusters -o tmp$time/clustering/ -n $copy_num >TASR_log/silix-split.log 2>TASR_log/silix-split.log"
 );
 print "\n 	..done..\n";
 
@@ -493,11 +495,11 @@ print "\n	..done..\n";
 if ( !$out_folder ) {
     system("rm -r TASR_output");
     system("mkdir TASR_output$time");
-    system("mv tmp$time/clustering/*.fa TASR_output/");
+    system("mv tmp$time/clustering/*.fasta TASR_output/");
 }
 else {
     system("mkdir $out_folder$time");
-    system("mv tmp$time/clustering/*.fa $out_folder$time/");
+    system("mv tmp$time/clustering/*.fasta $out_folder$time/");
 }
 if ($temp eq 'delete') {
    system("rm -r tmp$time");
@@ -514,8 +516,8 @@ print "\n-->TASR has finished runing<--\n";
 
 sub SAMTOBED {
     my ($samfile) = @_;
-    open( SAMBED, ">$samfile.bed" );
-    open( SAM,    "<$samfile" ) or die "Can't open '$samfile': $!";
+    open( SAMBED, ">$samfile.bed" ) or die "LINE 519";
+    open( SAM,    "<$samfile" ) or die "LINE 520";
     while (<SAM>) {
         if ( $_ =~ 'AS:i' ) {
             chomp($_);
@@ -543,45 +545,45 @@ sub MERGEBED {
     open( MERGE, ">$bed.merged" );
     while ( my $line = <BED> ) {
         chomp($line);
-
+        
         my ( $bed_ref, $bed_start, $bed_stop ) = split( /\t/, $line );
-
+        
         if ( !defined($intv_ref) || $bed_ref ne $intv_ref ) {
             if ( $intv_count > 0 ) {
                 print( MERGE
-                        "$intv_ref\t$intv_start\t$intv_stop\t$intv_count\n" );
+                "$intv_ref\t$intv_start\t$intv_stop\t$intv_count\n" );
             }
-
+            
             $intv_ref   = $bed_ref;
             $intv_start = $bed_start;
             $intv_count = 0;
         }
-
+        
         if ( $intv_count == 0 ) {
             $intv_start = $bed_start;
             $intv_count = 1;
         }
-
+        
         else {
             if ( $bed_start - $intv_stop <= $window ) {
                 $intv_count++;
             }
-
+            
             else {
                 print( MERGE
-                        "$intv_ref\t$intv_start\t$intv_stop\t$intv_count\n" );
-
+                "$intv_ref\t$intv_start\t$intv_stop\t$intv_count\n" );
+                
                 $intv_start = $bed_start;
                 $intv_count = 1;
             }
         }
-
+        
         if ( $intv_count == 1 || $bed_stop > $intv_stop ) {
             $intv_stop = $bed_stop;
         }
     }
     close(BED);
-
+    
     if ( $intv_count > 0 ) {
         print( MERGE "$intv_ref\t$intv_start\t$intv_stop\t$intv_count\n" );
     }
@@ -815,11 +817,11 @@ sub BEDTOFASTA {
     if ( -e "$database.index" ) { system("rm $database.index"); }
     my $db          = Bio::DB::Fasta->new("$database");
     my $outinterval = Bio::SeqIO->new(
-        -file    => ">$bed.fasta",
-        - format => "fasta"
+    -file    => ">$bed.fasta",
+    - format => "fasta"
     );
     open( INTER, "$bed" );
-
+    
     while ( my $INTER = <INTER> ) {
         chomp($INTER);
         my @lINTER      = split( " ", $INTER );
@@ -829,7 +831,7 @@ sub BEDTOFASTA {
         my $idin        = join( "_", $CHRin, $sin, $ein );
         my $seqinterval = $db->subseq( $CHRin, $sin, $ein );
         my $fastainter
-            = Bio::PrimarySeq->new( -id => $idin, -seq => $seqinterval );
+        = Bio::PrimarySeq->new( -id => $idin, -seq => $seqinterval );
         $outinterval->write_seq($fastainter);
     }
     close(INTER);
@@ -854,7 +856,7 @@ sub RENAME {
     }
 }
 __END__
-
+exit;
 
 I) Run TASR 
 
