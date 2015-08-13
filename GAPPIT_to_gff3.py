@@ -1,6 +1,7 @@
-#This script converts data from GAPIT into a gff3 format, currently to display on JBrowse
+#This script converts data from GAPIT into a gff3 format to display on JBrowse
 #Works in python 2.7.9 |Anaconda 2.2.0 (x86_64)| (script shows you the current version of python running)
 #Requires use of pandas and numpy
+#Not finished, as not all the data is outputted to the GAPIT format
 #To Do:
 
 import pandas as pd;
